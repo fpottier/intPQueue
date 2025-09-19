@@ -1,0 +1,5 @@
+(executable
+  (name test)
+  (libraries monolith intPQueue)
+  (enabled_if (= %{profile} dev))
+)
