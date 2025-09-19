@@ -1,0 +1,19 @@
+(lang dune 3.11)
+(name intPQueue)
+(generate_opam_files true)
+(package
+  (name intPQueue)
+  (authors "François Pottier <francois.pottier@inria.fr>")
+  (maintainers "François Pottier <francois.pottier@inria.fr>")
+  (source (uri git+https://github.com/fpottier/intPQueue.git))
+  (homepage https://github.com/fpottier/intPQueue/)
+  (bug_reports https://github.com/fpottier/intPQueue/issues)
+  (synopsis "A fast and compact priority queue with low integer priorities")
+  (license "LGPL-2.0-only WITH OCaml-LGPL-linking-exception")
+  (depends
+    (ocaml (>= 4.14))
+    hector
+    (ocamlfind :with-test)
+    (monolith :with-test)
+  )
+)

@@ -1,0 +1,19 @@
+{0 IntPQueue}
+
+[intPQueue] is an OCaml library that offers a fast and compact priority queue
+whose keys are nonnegative integers. The user must use only {i low} priorities,
+because the space occupied by the priority queue is linear in the magnitude of
+the priorities.
+
+{1 API}
+
+{!modules:
+IntPQueue
+}
+
+{1 Installation and Usage}
+
+Type [opam install intPQueue].
+
+In your [dune] file, add [(libraries intPQueue)] to the description of
+your [library] or [executable].
