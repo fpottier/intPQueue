@@ -103,7 +103,7 @@ let rec extract_nonempty q =
        this stack. *)
   end
 
-let extract q =
+let[@inline] extract q =
   if q.cardinal = 0 then
     None
   else
