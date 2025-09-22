@@ -4,7 +4,7 @@
 (*                                                                            *)
 (*                       François Pottier, Inria Paris                        *)
 (*                                                                            *)
-(*       Copyright 2024--2024 Inria. All rights reserved. This file is        *)
+(*       Copyright 2025--2025 Inria. All rights reserved. This file is        *)
 (*       distributed under the terms of the GNU Library General Public        *)
 (*       License, with an exception, as described in the file LICENSE.        *)
 (*                                                                            *)
@@ -55,7 +55,7 @@ let () =
   declare "add" spec R.add C.add;
 
   let spec = t ^> nondet (option elt) in
-  declare "remove" spec R.remove C.remove;
+  declare "extract" spec R.extract C.extract;
 
   let spec = t ^> bool in
   declare "is_empty" spec R.is_empty C.is_empty;

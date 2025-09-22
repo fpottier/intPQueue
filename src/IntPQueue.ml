@@ -4,7 +4,7 @@
 (*                                                                            *)
 (*                       François Pottier, Inria Paris                        *)
 (*                                                                            *)
-(*       Copyright 2024--2024 Inria. All rights reserved. This file is        *)
+(*       Copyright 2025--2025 Inria. All rights reserved. This file is        *)
 (*       distributed under the terms of the GNU Library General Public        *)
 (*       License, with an exception, as described in the file LICENSE.        *)
 (*                                                                            *)
@@ -27,7 +27,7 @@ type 'a t = {
      to the index [best] (excluded), every stack is empty. *)
   mutable best: int;
 
-  (* Current number of elements in the queue. Used in [remove] to stop the
+  (* Current number of elements in the queue. Used in [extract] to stop the
      search for a nonempty bucket. *)
   mutable cardinal: int;
 
@@ -78,7 +78,7 @@ let[@inline] is_empty q =
 let[@inline] cardinal q =
   q.cardinal
 
-let rec remove_nonempty q =
+let rec extract_nonempty q =
   assert (0 < q.cardinal);
   assert (0 <= q.best && q.best < MyArray.length q.a);
   (* Look for the next nonempty bucket. We know there is one. This may seem
@@ -93,7 +93,7 @@ let rec remove_nonempty q =
        This strategy is good when the client is Dijkstra's algorithm or A*. *)
     MyStack.reset xs;
     q.best <- q.best + 1;
-    remove_nonempty q
+    extract_nonempty q
   end
   else begin
     q.cardinal <- q.cardinal - 1;
@@ -103,14 +103,14 @@ let rec remove_nonempty q =
        this stack. *)
   end
 
-let remove q =
+let extract q =
   if q.cardinal = 0 then
     None
   else
-    Some (remove_nonempty q)
+    Some (extract_nonempty q)
 
 let repeat q f =
   while q.cardinal > 0 do
-    let x = remove_nonempty q in
+    let x = extract_nonempty q in
     f x
   done

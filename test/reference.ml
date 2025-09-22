@@ -38,8 +38,8 @@ let rec list_remove x xs =
   | y :: xs ->
       if x = y then xs else y :: list_remove x xs
 
-let remove q (ox : int option) =
-  (* [remove] is non-deterministic. Here, [ox] is the result produced by
+let extract q (ox : int option) =
+  (* [extract] is non-deterministic. Here, [ox] is the result produced by
      the candidate implementation. We must determine whether this result
      is valid and simulate a removal operation that produces precisely
      this result. *)
