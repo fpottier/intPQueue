@@ -94,6 +94,9 @@ let () =
   let spec = t ^>> fun q -> R.mem q % box ^> unit in
   declare "remove" spec R.remove C.remove;
 
+  let spec = t ^>> fun q -> R.mem q % box ^> priority ^> unit in
+  declare "update" spec R.update C.update;
+
   let spec = t ^> bool in
   declare "is_empty" spec R.is_empty C.is_empty;
 

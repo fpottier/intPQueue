@@ -138,6 +138,11 @@ let remove (q : t) (box : box) =
   q := if boxes = [] then M.remove i !q else M.add i boxes !q;
   box.busy <- None
 
+let update q box i =
+  assert (mem q box);
+  remove q box;
+  add q box i
+
 let cardinal q =
   M.fold (fun _p xs c -> List.length xs + c) !q 0
 
