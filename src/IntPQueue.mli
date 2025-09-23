@@ -15,6 +15,10 @@
    the space occupied by the priority queue is linear in the magnitude of
    the priorities. *)
 
+(**A priority is a nonnegative integer. *)
+type priority =
+  int
+
 (**The type of priority queues. *)
 type 'a t
 
@@ -22,7 +26,7 @@ type 'a t
 val create: unit -> 'a t
 
 (**[add q x p] inserts the element [x] with priority [p] into the queue [q]. *)
-val add: 'a t -> 'a -> int -> unit
+val add: 'a t -> 'a -> priority -> unit
 
 (**[extract q] extracts an element with minimum priority out of the queue [q]
    and returns it. *)
