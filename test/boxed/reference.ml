@@ -31,13 +31,13 @@ type elt =
   int
 
 type box =
-  { payload: elt; mutable priority: int; mutable busy: bool }
+  { payload: elt; mutable priority: int; mutable busy: t option }
 
-type t =
+and t =
   box list M.t ref
 
 let box x =
-  { payload = x; priority = 0; busy = false }
+  { payload = x; priority = 0; busy = None }
 
 let payload box =
   box.payload
@@ -46,14 +46,18 @@ let priority box =
   box.priority
 
 let busy box =
-  box.busy
+  match box.busy with None -> false | Some _ -> true
 
 let mem q box =
+  match box.busy with None -> false | Some q' -> q == q'
+(*
+  Another implementation that does not rely on [busy]:
   match M.find_opt box.priority !q with
   | None ->
       false
   | Some boxes ->
       List.memq box boxes
+ *)
 
 let create () : t =
   ref M.empty
@@ -64,7 +68,7 @@ let add q box i =
   let boxes = match M.find_opt i !q with None -> [] | Some boxes -> boxes in
   q := M.add i (box :: boxes) !q;
   box.priority <- i;
-  box.busy <- true
+  box.busy <- Some q
 
 let rec list_remove equiv x ys =
   match ys with
@@ -104,7 +108,7 @@ let extract (q : t) (obox : elt C.box option) =
     | Some cbox ->
         (* Check that there exists an element [x] with minimum priority
            in the queue [q] and remove it. *)
-        let (p, boxes) = M.min_binding !q in
+        let (i, boxes) = M.min_binding !q in
         (* Now we have a potential difficulty. [box] is a candidate box; it is
            the result of the candidate implementation. On the other hand,
            [boxes] is a list of reference boxes. How are we supposed to tell
@@ -115,8 +119,8 @@ let extract (q : t) (obox : elt C.box option) =
            Monolith; but for now, this will do. *)
         match list_remove same_payload cbox boxes with
         | box, boxes ->
-            q := if boxes = [] then M.remove p !q else M.add p boxes !q;
-            box.busy <- false;
+            q := if boxes = [] then M.remove i !q else M.add i boxes !q;
+            box.busy <- None;
             Monolith.Valid (Some box)
         | exception Not_found ->
             let cause _doc =
