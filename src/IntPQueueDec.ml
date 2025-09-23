@@ -10,55 +10,52 @@
 (*                                                                            *)
 (******************************************************************************)
 
-(* This is a variant of IntPQueue, which supports changing the priority
-   of an element while it is in the queue, testing whether an element is
-   in the queue, and removing an element from the queue. To this end, at
-   each level in the main array, instead of a stack of elements, we use
-   a circular doubly-linked list of boxes, where each box holds an
-   element. *)
+(* This is a variant of IntPQueue, which supports changing the priority of
+   an element while it is in the queue, testing whether an element is in
+   the queue, and removing an element from the queue. To this end, instead
+   of storing raw elements, the queue stores boxes, which keep track of
+   their own position in the queue. This makes it possible to extract a
+   specific box out of the queue in constant time. *)
 
-module MyArray = Hector.Poly
+let fail format =
+  Printf.ksprintf invalid_arg format
 
 type priority =
   int
 
-let fail =
-  invalid_arg
+module MyArray = Hector.Poly
+module MyStack = Hector.Poly
 
 (* -------------------------------------------------------------------------- *)
 
-(** A box holds an element and a priority. Furthermore, it participates
-    in a circular doubly-linked list.
+(** A box holds a value (its payload), a priority, and a position.
 
-    A box may or may not be currently part of a priority queue. If it is
-    currently part of a priority queue, then the [queue] field points to
-    this queue, the [priority] field reflects its priority in the queue,
-    and (via the fields [prev] and [next]) this box is part of the
-    circular doubly-linked list associated with [queue] and [priority].
-    If a box is not currently part of a priority queue, then its [queue]
-    field is [None] and the fields [prev] and [next] point to this box
-    itself. The [priority] field is the box's priority as last set. *)
+    The [payload] field is immutable.
+
+    A box may or may not be currently part of a queue. The sign bit of the
+    [priority] field records this information.
+
+    If a box is currently part of a queue, then its [priority] field holds
+    its priority, a nonnegative value. This value can be viewed as an
+    index into the queue's main array. The box's [position] field holds
+    its position within the stack found at index [priority].
+
+    If a box is not currently part of a queue, then its [priority] field
+    holds the box's priority ORed with a sign bit. *)
 type 'a box = {
   payload: 'a;
   mutable priority: int;
-  mutable queue: 'a t option;
-  mutable prev: 'a box;
-  mutable next: 'a box;
+  mutable position: int;
 }
-
-(**A circular doubly-linked list of boxes, also known as a ring, is either
-   empty or represented by a pointer to an arbitrary box in the list. *)
-and 'a ring =
-  'a box option
 
 (**A priority queue.*)
 and 'a t = {
 
   (* A priority queue is represented as a vector, indexed by priorities, of
-     rings. There is no bound on the size of the main vector -- its size is
-     increased if needed. It is up to the user to use priorities of
-     reasonable magnitude. *)
-  a: 'a ring MyArray.t;
+     stacks. There is no bound on the size of the main vector -- its size is
+     increased if needed. It is up to the user to use priorities of reasonable
+     magnitude. *)
+  a: 'a box MyStack.t MyArray.t;
 
   (* The index [best] is comprised between 0 (included) and the length of the
      array [a] (excluded). It can be the index of the lowest nonempty stack,
@@ -76,166 +73,121 @@ and 'a t = {
 
 (* Checking well-formedness. (Debugging only.) *)
 
-(* [iter ring yield] enumerates all boxes in the ring [ring]. *)
-
-let iter (ring : 'a ring) (yield : 'a box -> unit) =
-  match ring with
-  | None ->
-      ()
-  | Some start ->
-      yield start;
-      let current = ref start.next in
-      while !current != start do
-        yield !current;
-        current := !current.next
-      done
-
-(* [mem ring box] tests whether the box [box] appears in the ring [ring]. *)
-
-let mem ring box =
-  let exception Found in
-  match iter ring (fun box' -> if box == box' then raise Found) with
-  | exception Found -> true
-  | ()              -> false
-
 (* [check q] checks that the queue [q] is well-formed. *)
 
 let check q =
   assert (0 <= q.best && q.best <= MyArray.length q.a);
   for i = 0 to q.best - 1 do
     let xs = MyArray.get q.a i in
-    assert (xs = None);
+    assert (MyStack.length xs = 0);
   done;
   let c = ref 0 in
   for i = q.best to MyArray.length q.a - 1 do
-    let ring = MyArray.get q.a i in
-    iter ring @@ fun box ->
+    let xs = MyArray.get q.a i in
+    c := !c + MyStack.length xs;
+    xs |> MyStack.iteri @@ fun j box ->
       assert (box.priority = i);
-      assert (match box.queue with None -> false | Some q' -> q == q');
-      assert (box.prev.next == box);
-      assert (box.next.prev == box);
-      incr c
+      assert (box.position = j)
   done;
   assert (q.cardinal = !c)
 
-(* [check_box box] checks that the box [box] is well-formed. *)
+(* -------------------------------------------------------------------------- *)
 
-let check_box box =
-  match box.queue with
-  | Some q ->
-      let i = box.priority in
-      assert (0 <= i && i < MyArray.length q.a);
-      let ring = MyArray.get q.a i in
-      assert (mem ring box)
-  | None ->
-      assert (box.next == box);
-      assert (box.prev == box)
+(* Operations on the sign bit. *)
+
+(* [set i] sets the signs bit in [i]. *)
+
+let[@inline] set i =
+  i lor min_int
+
+(* [unset i] clears the signs bit in [i]. *)
+
+let[@inline] unset i =
+  i land max_int
 
 (* -------------------------------------------------------------------------- *)
 
 (* Operations on boxes. *)
 
-(* [box x] creates a new box whose payload is [x]. *)
-
 let box x =
   let payload = x
-  and priority = 0 (* dummy *)
-  and queue = None in
-  let rec box = { payload; priority; queue; prev = box; next = box } in
-  box
+  and priority = set 0 (* box is not a member of any queue *)
+  and position = 0     (* dummy *) in
+  { payload; priority; position }
 
 let[@inline] payload box =
   box.payload
 
 let[@inline] priority box =
-  box.priority
+  unset box.priority
 
-let[@inline] queue box =
-  box.queue
+let[@inline] busy box =
+  box.priority < 0
 
-(* -------------------------------------------------------------------------- *)
-
-(* Internal operations on rings. *)
-
-module Ring = struct
-
-  (* [insert ring box] inserts the box [box] into the ring [ring]. The box's
-     [prev] and [next] fields need not be valid; they are overwritten. The
-     fields other than [prev] and [next] are unaffected. The Boolean result
-     indicates whether the ring was empty. *)
-
-  let[@inline] insert (ring : 'a ring) (box : 'a box) : bool =
-    match ring with
-    | None ->
-        true
-    | Some start ->
-        (* Make [box] the predecessor of [start] in the ring. *)
-        box.next <- start;
-        box.prev <- start.prev;
-        start.prev.next <- box;
-        start.prev <- box;
-        false
-
-  (* [half_extract box] extracts the box [box] out of its ring. This box's
-     neighbors in the ring are updated, so the ring shrinks, but the box's
-     [prev] and [next] fields are not updated. They must be updated before
-     this box is returned to the user. *)
-
-  let[@inline] half_extract (box : 'a box) : unit =
-    let prev = box.prev
-    and next = box.next in
-    next.prev <- prev;
-    prev.next <- next
-
-  (* [extract box] extracts the box [box] out of its ring. This box becomes
-     isolated in a ring of length 1. The fields other than [prev] and [next]
-     are unaffected. *)
-
-  let[@inline] extract (box : 'a box) : unit =
-    half_extract box;
-    box.next <- box;
-    box.prev <- box
-
-end (* Ring *)
+let mem q box =
+  (* Validate the box's [priority] field. *)
+  let i = box.priority in
+  0 <= i && i < MyArray.length q.a &&
+  let xs = MyArray.unsafe_get q.a i in
+  (* Validate the box's [position] field. *)
+  let j = box.position in
+  assert (0 <= j);
+  j < MyStack.length xs &&
+  (* Check that this box is found in the queue at the predicted position. *)
+  box == MyStack.unsafe_get xs j
 
 (* -------------------------------------------------------------------------- *)
+
+(* Operations on queues. *)
+
+(* When the main array is created or extended, each level must be initialized
+   with a fresh empty stack. [fresh_segment] creates an array of [n] fresh
+   empty stacks. *)
+
+let fresh_stack (_j : int) =
+  MyStack.create()
 
 let create () =
-  (* Set up the main array so that it initially has 16 priority levels. When
-     a new level is added, it must be initialized with an empty circular
-     list. *)
-  let a = MyArray.make 16 None in
+  let a = MyArray.init 16 fresh_stack in
   { a; best = 0; cardinal = 0 }
 
-let[@inline] grow q priority =
-  if MyArray.length q.a <= priority then begin
-    MyArray.ensure_capacity q.a (priority + 1);
-    while MyArray.length q.a <= priority do
-      MyArray.push q.a None
-    done
+let[@inline] grow q i =
+  assert (0 <= i);
+  let desired = i + 1 in
+  let current = MyArray.length q.a in
+  if current < desired then begin
+    MyArray.ensure_capacity q.a desired;
+    MyArray.push_array q.a (Array.init (desired - current) fresh_stack);
   end
 
-let add q box priority =
-  match box.queue with
-  | Some _ ->
-      fail "add: this box is already a member of a priority queue"
-  | None ->
-      assert (0 <= priority);
-      q.cardinal <- q.cardinal + 1;
-      (* Grow the main array if necessary. *)
-      grow q priority;
-      assert (priority < MyArray.length q.a);
-      (* Find out which ring we should insert into. *)
-      let ring = MyArray.unsafe_get q.a priority in
-      (* Insert. *)
-      if Ring.insert ring box then
-        MyArray.unsafe_set q.a priority (Some box);
-      box.priority <- priority;
-      box.queue <- Some q;
-      (* Decrease [q.best], if necessary, so as not to miss the new element. In
-         the special case of Dijkstra's algorithm or A*, this never happens. *)
-      if priority < q.best then
-        q.best <- priority
+(* [add' q box i] assumes [0 <= i] and does not increment [q.cardinal]. *)
+
+let add' q box i =
+  assert (0 <= i);
+  (* Grow the main array if necessary. *)
+  grow q i;
+  assert (i < MyArray.length q.a);
+  (* Find out which stack we should push into. *)
+  let xs = MyArray.unsafe_get q.a i in
+  (* Push. *)
+  let j = MyStack.length q.a in
+  MyStack.push xs box;
+  box.priority <- i;
+  box.position <- j;
+  (* Decrease [q.best], if necessary, so as not to miss the new element. In
+     the special case of Dijkstra's algorithm or A*, this never happens. *)
+  if i < q.best then
+    q.best <- i
+
+let add q box i =
+  if busy box then
+    fail "add: this box is already a member of some queue";
+  if i < 0 then
+    fail "add: negative priority (%d)" i;
+  (* Increment the queue's cardinality. *)
+  q.cardinal <- q.cardinal + 1;
+  (* Continue. *)
+  add' q box i
 
 let[@inline] is_empty q =
   q.cardinal = 0
@@ -245,34 +197,34 @@ let[@inline] cardinal q =
 
 let rec extract_nonempty q =
   assert (0 < q.cardinal);
-  assert (0 <= q.best && q.best < MyArray.length q.a);
+  let i = q.best in
+  assert (0 <= i && i < MyArray.length q.a);
   (* Look for the next nonempty bucket. We know there is one. This may seem
      inefficient, because it is a linear search. However, in applications
      where [q.best] never decreases, the cumulated cost of this loop is the
      maximum priority ever used, which is good. *)
-  let ring = MyArray.unsafe_get q.a q.best in
-  match ring with
-  | None ->
-      q.best <- q.best + 1;
-      extract_nonempty q
-  | Some start ->
-      q.cardinal <- q.cardinal - 1;
-      let box =
-        if start.next == start then begin
-          (* This ring becomes empty. *)
-          MyArray.unsafe_set q.a q.best None;
-          start
-        end
-        else
-          (* This ring does not become empty. Instead of extracting [start],
-             we extract the box [start.prev], so [start] remains a member of
-             the ring. Therefore there is no need to update the main array. *)
-          let box = start.prev in
-          Ring.extract box;
-          box
-      in
-      box.queue <- None;
-      box
+  let xs = MyArray.unsafe_get q.a i in
+  if MyStack.length xs = 0 then begin
+    (* As noted below, [MyStack.pop] does not physically shrink the stack.
+       When we find that a priority level has become empty, we physically
+       empty it, so as to free the (possibly large) space that it takes up.
+       This strategy is good when the client is Dijkstra's algorithm or A*. *)
+    MyStack.reset xs;
+    q.best <- i + 1;
+    extract_nonempty q
+  end
+  else begin
+    q.cardinal <- q.cardinal - 1;
+    let box = MyStack.pop xs in
+    (* Note: [MyStack.pop] does not shrink the physical array underlying the
+       stack. This is good, because we are likely to push new elements into
+       this stack. *)
+    assert (box.priority = i);
+    assert (box.position = MyStack.length xs);
+    (* Mark this box as isolated and return it. *)
+    box.priority <- set i;
+    box
+  end
 
 let[@inline] extract q =
   if q.cardinal = 0 then
@@ -280,61 +232,67 @@ let[@inline] extract q =
   else
     Some (extract_nonempty q)
 
-let remove box =
-  match box.queue with
-  | None ->
-      fail "remove: this box is not currently a member of any priority queue"
-  | Some q ->
-      assert (0 < q.cardinal);
-      let i = box.priority in
-      let ring = MyArray.unsafe_get q.a i in
-      match ring with
-      | None ->
-          assert false
-      | Some start ->
-          q.cardinal <- q.cardinal - 1;
-          let prev = start.prev in
-          Ring.extract box;
-          box.queue <- None;
-          if start == box then
-            MyArray.unsafe_set q.a i (if prev == box then None else Some prev)
-
-(* [update box priority] is equivalent to [remove box; add q box priority],
-   where [box.queue = Some q]. By composing the two operations, we are able
-   to avoid some writes to memory. To begin with, if [priority] is equal to
-   [box.priority] then there is nothing to do. If the two priorities differ,
-   then 1- there is no need to update [q.cardinal]; 2- there is no need to
-   update [box.queue]; 3- the box can be extracted using [Ring.half_extract]
-   instead of [Ring.extract]; the fields [box.prev] and [box.next] are then
-   updated by [Ring.insert]. *)
-
-let update box priority =
-  match box.queue with
-  | None ->
-      fail "update: this box is not currently a member of any priority queue"
-  | Some q ->
-      let i = box.priority in
-      if i <> priority then
-        let ring = MyArray.unsafe_get q.a i in
-        match ring with
-        | None ->
-            assert false
-        | Some start ->
-            let prev = start.prev in
-            Ring.half_extract box;
-            if start == box then
-              MyArray.unsafe_set q.a i (if prev == box then None else Some prev);
-            grow q priority;
-            assert (priority < MyArray.length q.a);
-            let ring = MyArray.unsafe_get q.a priority in
-            if Ring.insert ring box then
-              MyArray.unsafe_set q.a priority (Some box);
-            box.priority <- priority;
-            if priority < q.best then
-              q.best <- priority
-
 let repeat q f =
   while q.cardinal > 0 do
     let x = extract_nonempty q in
     f x
   done
+
+(* [remove' q box] does not update [q.cardinal] and does not mark the
+   box as isolated (that is, it does not update [box.priority]). *)
+
+let remove' q box =
+  (* The following checks resemble [mem q box]. However, we cannot use
+     [mem q box] because 1- we wish to produce precise failure messages
+     and 2- we wish to bind [i], [xs], [j], [n] for use in the remainder
+     of the code. *)
+  if not (busy box) then
+    fail "remove: this box is not a member of any queue";
+  let i = box.priority in
+  assert (0 <= i);
+  if not (i < MyArray.length q.a) then
+    fail "remove: this box is not a member of this queue";
+  let xs = MyArray.unsafe_get q.a i in
+  let j = box.position in
+  assert (0 <= j);
+  let n = MyStack.length xs in
+  if not (j < n) then
+    fail "remove: this box is not a member of this queue";
+  let box' = MyStack.unsafe_get xs j in
+  if not (box == box') then
+    fail "remove: this box is not a member of this queue";
+  (* We have now verified that this box is a member of this queue. *)
+  let box' = MyStack.pop xs in
+  if j + 1 = n then
+    (* We have extracted the desired box. *)
+    assert (box == box')
+  else
+    (* We have extracted some other box, which we write at position [j]. *)
+    MyStack.unsafe_set xs j box'
+
+let remove q box =
+  (* Remove this box (or fail). *)
+  remove' q box;
+  (* Update the queue's cardinality. *)
+  assert (0 < q.cardinal);
+  q.cardinal <- q.cardinal - 1;
+  (* Mark this box isolated. *)
+  box.priority <- set box.priority
+
+(* [update q box i] is equivalent to the sequence [remove q box; add q box i].
+   By composing the two operations, we are able to avoid a few memory writes.
+   To begin with, if this box's priority is already [i], then there is nothing
+   to do. (In this case, for efficiency, we do not verify that [mem q box]
+   holds.) If the two priorities differ, then, by using [remove'] and [add']
+   instead of [remove] and [add], we save a few accesses to [q.cardinal] and
+   [box.priority]. *)
+
+let update q box i =
+  if i < 0 then
+    fail "update: negative priority (%d)" i;
+  (* If the current priority and the requested priority are equal,
+     then there is nothing to do. Otherwise, an update is required. *)
+  if box.priority <> i then begin
+    remove' q box;
+    add' q box i
+  end

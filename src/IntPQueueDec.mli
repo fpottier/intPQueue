@@ -42,10 +42,13 @@ val payload:  'a box -> 'a
    box's last known priority, as set by {!add} or {!update}. *)
 val priority: 'a box -> priority
 
-(**[queue box] determines whether the box [box] is currently isolated or a
-   member of a priority queue [q]. In the former case, [None] is returned;
-   in the latter case, [Some q] is returned. *)
-val queue : 'a box -> 'a t option
+(**[busy box] determines whether the box [box] is currently a member of
+   some priority queue. *)
+val busy: 'a box -> bool
+
+(**[mem q box] determines whether the box [box] is currently a member of
+   the priority queue [q]. *)
+val mem: 'a t -> 'a box -> bool
 
 (**[create()] creates a new empty priority queue. *)
 val create: unit -> 'a t
@@ -59,14 +62,18 @@ val add: 'a t -> 'a box -> priority -> unit
    and returns it. *)
 val extract: 'a t -> 'a box option
 
-(**[remove box] extracts the box [box] out of its priority queue. This box
-   must be a member of some priority queue. This box becomes isolated. *)
-val remove: 'a box -> unit
+(**[remove q box] extracts the box [box] out of the priority queue [q].
+   This box must be a member of the queue [q]. *)
+val remove: 'a t -> 'a box -> unit
 
-(**[update box p] sets the priority of the box [box] to [p]. This box
-   must be a member of some priority queue [q]. The call [update box p]
-   is then equivalent to [remove box; add q box p]. *)
-val update: 'a box -> priority -> unit
+(**[update q box i] sets the priority of the box [box] to [i]. This box
+   must be a member of the queue [q]. The call [update box p]
+   is then equivalent to [remove box; add q box p].
+
+   If the condition [mem q box] is violated, then [update q box i] cannot be
+   expected to fail: it can seem to silently succeed. To avoid this problem,
+   it is recommended to write [assert (mem q box); update q box i]. *)
+val update: 'a t -> 'a box -> priority -> unit
 
 (**[is_empty q] tests whether the queue [q] is empty. *)
 val is_empty: 'a t -> bool
@@ -82,7 +89,4 @@ val repeat: 'a t -> ('a box -> unit) -> unit
 (**/**)
 
 (**[check] is used only during testing. *)
-val check : 'a t -> unit
-
-(**[check_box] is used only during testing. *)
-val check_box : 'a box -> unit
+val check: 'a t -> unit
