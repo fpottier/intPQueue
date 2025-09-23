@@ -266,9 +266,11 @@ let remove' q box =
   if j + 1 = n then
     (* We have extracted the desired box. *)
     assert (box == box')
-  else
+  else (
     (* We have extracted some other box, which we write at position [j]. *)
-    MyStack.unsafe_set xs j box'
+    MyStack.unsafe_set xs j box';
+    box'.position <- j
+  )
 
 let remove q box =
   (* Remove this box (or fail). *)
