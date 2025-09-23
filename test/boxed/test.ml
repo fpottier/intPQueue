@@ -62,7 +62,7 @@ let priority =
 
 (* Declare the operations. *)
 
-let notbusy box =
+let lone box =
   not (R.busy box)
 
 let () =
@@ -85,11 +85,14 @@ let () =
   let spec = t ^> box ^> bool in
   declare "mem" spec R.mem C.mem;
 
-  let spec = t ^> notbusy % box ^> priority ^> unit in
+  let spec = t ^> lone % box ^> priority ^> unit in
   declare "add" spec R.add C.add;
 
   let spec = t ^> nondet (option box) in
   declare "extract" spec R.extract C.extract;
+
+  let spec = t ^>> fun q -> R.mem q % box ^> unit in
+  declare "remove" spec R.remove C.remove;
 
   let spec = t ^> bool in
   declare "is_empty" spec R.is_empty C.is_empty;
