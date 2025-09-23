@@ -10,9 +10,18 @@
 (*                                                                            *)
 (******************************************************************************)
 
+let fail format =
+  Printf.ksprintf invalid_arg format
+
+type priority =
+  int
+
 module MyArray = Hector.Poly
 module MyStack = Hector.Poly
 
+(* -------------------------------------------------------------------------- *)
+
+(**A priority queue. *)
 type 'a t = {
 
   (* A priority queue is represented as a vector, indexed by priorities, of
@@ -33,6 +42,10 @@ type 'a t = {
 
 }
 
+(* -------------------------------------------------------------------------- *)
+
+(* Checking well-formedness. (Debugging only.) *)
+
 let check q =
   assert (0 <= q.best && q.best <= MyArray.length q.a);
   for i = 0 to q.best - 1 do
@@ -46,31 +59,44 @@ let check q =
   done;
   assert (q.cardinal = !c)
 
+(* -------------------------------------------------------------------------- *)
+
+(* Operations on queues. *)
+
+(* When the main array is created or extended, each level must be initialized
+   with a fresh empty stack. [fresh_segment] creates an array of [n] fresh
+   empty stacks. *)
+
+let fresh_stack (_j : int) =
+  MyStack.create()
+
 let create () =
-  (* Set up the main array so that it initially has 16 priority levels. When
-     a new level is added, it must be initialized with a fresh empty stack. *)
-  let a = MyArray.init 16 (fun _i -> MyStack.create()) in
+  let a = MyArray.init 16 fresh_stack in
   { a; best = 0; cardinal = 0 }
 
-let add q x priority =
-  assert (0 <= priority);
+let[@inline] grow q i =
+  assert (0 <= i);
+  let desired = i + 1 in
+  let current = MyArray.length q.a in
+  if current < desired then begin
+    MyArray.ensure_capacity q.a desired;
+    MyArray.push_array q.a (Array.init (desired - current) fresh_stack);
+  end
+
+let add q x i =
+  if i < 0 then fail "add: negative priority (%d)" i;
   q.cardinal <- q.cardinal + 1;
   (* Grow the main array if necessary. *)
-  if MyArray.length q.a <= priority then begin
-    MyArray.ensure_capacity q.a (priority + 1);
-    while MyArray.length q.a <= priority do
-      MyArray.push q.a (MyStack.create())
-    done
-  end;
-  assert (priority < MyArray.length q.a);
+  grow q i;
+  assert (i < MyArray.length q.a);
   (* Find out which stack we should push into. *)
-  let xs = MyArray.unsafe_get q.a priority in
+  let xs = MyArray.unsafe_get q.a i in
   (* Push. *)
   MyStack.push xs x;
   (* Decrease [q.best], if necessary, so as not to miss the new element. In
      the special case of Dijkstra's algorithm or A*, this never happens. *)
-  if priority < q.best then
-    q.best <- priority
+  if i < q.best then
+    q.best <- i
 
 let[@inline] is_empty q =
   q.cardinal = 0
@@ -80,19 +106,20 @@ let[@inline] cardinal q =
 
 let rec extract_nonempty q =
   assert (0 < q.cardinal);
-  assert (0 <= q.best && q.best < MyArray.length q.a);
+  let i = q.best in
+  assert (0 <= i && i < MyArray.length q.a);
   (* Look for the next nonempty bucket. We know there is one. This may seem
      inefficient, because it is a linear search. However, in applications
      where [q.best] never decreases, the cumulated cost of this loop is the
      maximum priority ever used, which is good. *)
-  let xs = MyArray.unsafe_get q.a q.best in
+  let xs = MyArray.unsafe_get q.a i in
   if MyStack.length xs = 0 then begin
     (* As noted below, [MyStack.pop] does not physically shrink the stack.
        When we find that a priority level has become empty, we physically
        empty it, so as to free the (possibly large) space that it takes up.
        This strategy is good when the client is Dijkstra's algorithm or A*. *)
     MyStack.reset xs;
-    q.best <- q.best + 1;
+    q.best <- i + 1;
     extract_nonempty q
   end
   else begin
