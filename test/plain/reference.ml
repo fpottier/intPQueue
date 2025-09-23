@@ -10,6 +10,8 @@
 (*                                                                            *)
 (******************************************************************************)
 
+let format = PPrint.utf8format
+
 (* As a reference implementation, one might (naively) wish to use an
    efficient priority queue, such as the one offered by the module
    [Pqueue] in OCaml's standard library, starting with OCaml 5.4.0.
@@ -48,24 +50,29 @@ let extract q (ox : int option) =
     | None ->
         Monolith.Valid None
     | Some x ->
-        let cause _doc = PPrint.utf8format "(* candidate finds %d *)" x in
+        let cause _doc =
+          format "(* candidate finds %d, yet queue should be empty *)" x in
         Monolith.Invalid cause
   else
     match ox with
     | None ->
-        let cause _doc = PPrint.utf8format "(* candidate returns None *)" in
+        let cause _doc = format "(* candidate returns None *)" in
         Monolith.Invalid cause
     | Some x ->
         (* Check that there exists an element [x] with minimum priority
            in the queue [q] and remove it. *)
-        match M.min_binding_opt !q with
-        | Some (p, xs) when List.mem x xs ->
-            let xs = list_remove x xs in
-            q := if xs = [] then M.remove p !q else M.add p xs !q;
-            Monolith.Valid (Some x)
-        | _ ->
-            let cause _doc = PPrint.utf8format "(* candidate finds %d *)" x in
-            Monolith.Invalid cause
+        let (p, xs) = M.min_binding !q in
+        if List.mem x xs then
+          let xs = list_remove x xs in
+          q := if xs = [] then M.remove p !q else M.add p xs !q;
+          Monolith.Valid (Some x)
+        else
+          let cause _doc =
+            format
+              "(* candidate finds %d, which does not have minimum priority *)"
+              x
+          in
+          Monolith.Invalid cause
 
 let cardinal q =
   M.fold (fun _p xs c -> List.length xs + c) !q 0
