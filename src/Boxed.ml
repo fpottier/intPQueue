@@ -122,7 +122,7 @@ let[@inline] priority box =
   unset box.priority
 
 let[@inline] busy box =
-  box.priority < 0
+  0 <= box.priority
 
 let mem q box =
   (* Validate the box's [priority] field. *)
@@ -170,7 +170,7 @@ let add' q box i =
   (* Find out which stack we should push into. *)
   let xs = MyArray.unsafe_get q.a i in
   (* Push. *)
-  let j = MyStack.length q.a in
+  let j = MyStack.length xs in
   MyStack.push xs box;
   box.priority <- i;
   box.position <- j;
