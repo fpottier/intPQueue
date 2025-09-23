@@ -130,6 +130,14 @@ let extract (q : t) (obox : elt C.box option) =
             in
             Monolith.Invalid cause
 
+let remove (q : t) (box : box) =
+  assert (mem q box);
+  let i = box.priority in
+  let boxes = M.find i !q in                   (* [M.find] cannot fail *)
+  let _, boxes = list_remove (==) box boxes in (* [list_remove] cannot fail *)
+  q := if boxes = [] then M.remove i !q else M.add i boxes !q;
+  box.busy <- None
+
 let cardinal q =
   M.fold (fun _p xs c -> List.length xs + c) !q 0
 
