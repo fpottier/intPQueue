@@ -34,7 +34,7 @@ type 'a t
 val box: 'a -> 'a box
 
 (**[payload box] returns the payload of the box [box]. *)
-val payload:  'a box -> 'a
+val payload: 'a box -> 'a
 
 (**[priority box] returns the current priority of the box [box]. If this box
    is currently a member of a queue [q], then this is its current priority
