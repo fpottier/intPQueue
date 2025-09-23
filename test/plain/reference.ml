@@ -13,7 +13,7 @@
 (* As a reference implementation, one might (naively) wish to use an
    efficient priority queue, such as the one offered by the module
    [Pqueue] in OCaml's standard library, starting with OCaml 5.4.0.
-   However, this is not suitable. [remove] is non-deterministic. Once
+   However, this is not suitable. [extract] is non-deterministic. Once
    the candidate implementation has chosen which element should be
    extracted, the reference implementation must obey this choice. *)
 

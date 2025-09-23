@@ -16,7 +16,10 @@ open Monolith
 module R = Reference
 
 (* This is the candidate implementation. *)
-module C = IntPQueue
+module C = IntPQueue.Plain
+
+let () =
+  dprintf "          open IntPQueue.Plain;;\n"
 
 (* -------------------------------------------------------------------------- *)
 
@@ -39,7 +42,7 @@ let t =
 let elt =
   lt 16
 
-let prio =
+let priority =
   lt 16
 
 (* -------------------------------------------------------------------------- *)
@@ -51,7 +54,7 @@ let () =
   let spec = unit ^> t in
   declare "create" spec R.create C.create;
 
-  let spec = t ^> elt ^> prio ^> unit in
+  let spec = t ^> elt ^> priority ^> unit in
   declare "add" spec R.add C.add;
 
   let spec = t ^> nondet (option elt) in
@@ -70,9 +73,6 @@ let () =
 (* -------------------------------------------------------------------------- *)
 
 (* Start the engine! *)
-
-let () =
-  dprintf "          open IntPQueue;;\n"
 
 let () =
   let fuel = 32 in
