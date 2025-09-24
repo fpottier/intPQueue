@@ -62,6 +62,15 @@ let mem q box =
 let create () : t =
   ref M.empty
 
+let reset q =
+  M.iter (fun _i boxes ->
+    List.iter (fun box ->
+      assert (mem q box);
+      box.busy <- None
+    ) boxes
+  ) !q;
+  q := M.empty
+
 let add q box i =
   assert (not (busy box));
   assert (not (mem q box));

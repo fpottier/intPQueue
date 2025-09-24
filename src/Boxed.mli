@@ -131,6 +131,20 @@ val cardinal: 'a t -> int
    invocations of the function [f]. *)
 val repeat: 'a t -> ('a box -> unit) -> unit
 
+(**[reset q] empties the queue [q]. The queue [q] becomes identical to a
+   queue that has just been created by {!create}. Every box that was a
+   member of the queue [q] becomes isolated.
+
+   A typical situation where [reset q] is useful (and cheap) is one where
+   the queue [q] has been used for a while, is now empty, and will be used
+   again in the future. Calling [reset q] at this point frees up the space
+   occupied by the queue in memory and destroys any pointers from the queue
+   to elements that have been stored in the queue earlier.
+
+   Time complexity: {m O(n)}, where {m n} is the number of boxes currently
+   in the queue. *)
+val reset: 'a t -> unit
+
 (**/**)
 
 (**[check] is used only during testing. *)

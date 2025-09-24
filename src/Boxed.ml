@@ -66,7 +66,7 @@ and 'a t = {
      stacks. There is no bound on the size of the main vector -- its size is
      increased if needed. It is up to the user to use priorities of reasonable
      magnitude. *)
-  a: 'a box MyStack.t MyArray.t;
+  mutable a: 'a box MyStack.t MyArray.t;
 
   (* The index [best] is comprised between 0 (included) and the length of the
      array [a] (excluded). It can be the index of the lowest nonempty stack,
@@ -161,6 +161,28 @@ let fresh_stack (_j : int) =
 let create () =
   let a = MyArray.init 16 fresh_stack in
   { a; best = 0; cardinal = 0 }
+
+(* It would be nice if we could implement [reset] in constant time, exactly as
+   in [Plain]. However, in constant time, one cannot mark every box in the
+   queue as suddenly not busy. As a result, we would then be unable to
+   implement the function [busy]. That would be problematic, as [busy] is used
+   in [add] to detect a user error. Therefore, we choose to implement [reset]
+   in time O(n), where [n] is the number of boxes in the queue. *)
+
+(* One way of implementing [reset] in constant time, while keeping [busy],
+   would be to add two fields to each box, namely a pointer to a queue and
+   an epoch number. We deem that too costly. *)
+
+let reset q =
+  (
+    q.a |> MyArray.iteri @@ fun i xs ->
+    xs |> MyStack.iter @@ fun box ->
+    assert (box.priority = i);
+    box.priority <- set i
+  );
+  q.a <- MyArray.init 16 fresh_stack;
+  q.best <- 0;
+  q.cardinal <- 0
 
 let[@inline] grow q i =
   assert (0 <= i);

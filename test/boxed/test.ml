@@ -105,6 +105,9 @@ let () =
 
   (* [repeat] is not tested. *)
 
+  let spec = t ^> unit in
+  declare "reset" spec R.reset C.reset;
+
   ()
 
 (* -------------------------------------------------------------------------- *)
