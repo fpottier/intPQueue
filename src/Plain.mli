@@ -69,6 +69,13 @@ val cardinal: 'a t -> int
    invocations of the function [f]. *)
 val repeat: 'a t -> ('a -> unit) -> unit
 
+(**[reset q] empties the queue [q], freeing up the space that the queue
+   occupies in memory. The queue [q] becomes identical to a queue that
+   has just been created by {!create}.
+
+   Time complexity: {m O(1)}. *)
+val reset: 'a t -> unit
+
 (**/**)
 
 (**[check] is used only during testing. *)

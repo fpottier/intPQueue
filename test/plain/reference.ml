@@ -29,6 +29,9 @@ module M = Map.Make(Int)
 let create () =
   ref M.empty
 
+let reset q =
+  q := M.empty
+
 let add q x p =
   let xs = match M.find_opt p !q with None -> [] | Some xs -> xs in
   q := M.add p (x :: xs) !q

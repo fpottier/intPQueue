@@ -28,7 +28,7 @@ type 'a t = {
      stacks. There is no bound on the size of the main vector -- its size is
      increased if needed. It is up to the user to use priorities of reasonable
      magnitude. *)
-  a: 'a MyStack.t MyArray.t;
+  mutable a: 'a MyStack.t MyArray.t;
 
   (* The index [best] is comprised between 0 (included) and the length of the
      array [a] (excluded). It can be the index of the lowest nonempty stack,
@@ -73,6 +73,11 @@ let fresh_stack (_j : int) =
 let create () =
   let a = MyArray.init 16 fresh_stack in
   { a; best = 0; cardinal = 0 }
+
+let reset q =
+  q.a <- MyArray.init 16 fresh_stack;
+  q.best <- 0;
+  q.cardinal <- 0
 
 let[@inline] grow q i =
   assert (0 <= i);
