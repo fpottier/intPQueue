@@ -184,3 +184,26 @@ undo:
 # Undo the last release (assuming it was done on the same date).
 	@ git tag -d $(DATE)
 	@ git push -u origin :$(DATE)
+
+# ------------------------------------------------------------------------------
+
+# Copying this library into Menhir.
+
+# We copy the source files without further ado, so `intPQueue` is not
+# officially considered a vendored library inside Menhir. It is just
+# two modules, Plain and Boxed.
+
+# Our dependency on Hector.Poly is replaced with a dependency on Vector,
+# which exists inside Menhir.
+
+CLIENT := $(HOME)/dev/menhir/src
+
+FILES  := Plain.ml Boxed.ml Plain.mli Boxed.mli
+
+.PHONY: vendor
+vendor:
+	@ copy=$(CLIENT) ; \
+	  cd src && cp -a $(FILES) $$copy && \
+	  cd $$copy && \
+	  sed -i.bak -e 's/Hector.Poly/Vector/g' $(FILES) && \
+	  rm -f *.bak src/*.bak
