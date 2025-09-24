@@ -12,6 +12,13 @@
 
 (**This is a priority queue whose keys are {i low} nonnegative integers. *)
 
+(**This queue is optimized for throughput, that is, speed. When an element
+   is extracted out of the queue, the queue may retain a pointer to this
+   element. This creates a memory leak: that is, the existence of this
+   pointer can prevent the garbage collector from freeing this element. In
+   practice, we do not expect this to be a problem, especially in scenarios
+   where the queue itself is not long-lived. *)
+
 (**A priority is a nonnegative integer. *)
 type priority =
   int

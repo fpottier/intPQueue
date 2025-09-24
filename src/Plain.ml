@@ -19,6 +19,15 @@ type priority =
 module MyArray = Hector.Poly
 module MyStack = Hector.Poly
 
+(* We use vectors to represent both the main array and the secondary
+   stacks. These two uses are in principle independent of one another. *)
+
+(* Hector's vectors have a memory leak: after an element has been extracted by
+   [pop], the vector can still contain a pointer to this element. Thus, our
+   priority queue, too, has a memory leak. In practice, we do not expect this
+   to create a problem. The use of [MyStack.reset] in [extract] partially
+   mitigates this problem. *)
+
 (* -------------------------------------------------------------------------- *)
 
 (**A priority queue. *)
