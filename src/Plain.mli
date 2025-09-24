@@ -10,10 +10,7 @@
 (*                                                                            *)
 (******************************************************************************)
 
-(**This module implements a fast and compact priority queue whose keys are
-   nonnegative integers. The user must use only {i low} priorities, because
-   the space occupied by the priority queue is linear in the magnitude of
-   the priorities. *)
+(**This is a priority queue whose keys are {i low} nonnegative integers. *)
 
 (**A priority is a nonnegative integer. *)
 type priority =
