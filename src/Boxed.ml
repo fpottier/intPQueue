@@ -35,13 +35,15 @@ module MyStack = Hector.Poly
     A box may or may not be currently part of a queue. The sign bit of the
     [priority] field records this information.
 
-    If a box is currently part of a queue, then its [priority] field holds
-    its priority, a nonnegative value. This value can be viewed as an
-    index into the queue's main array. The box's [position] field holds
-    its position within the stack found at index [priority].
+    If a box is currently part of a queue, then its [priority] field contains
+    the value [i], where [i] is the box's priority, a nonnegative value. This
+    value can be viewed as an index into the queue's main array. The box's
+    [position] field holds its position within the stack found at index
+    [priority].
 
     If a box is not currently part of a queue, then its [priority] field
-    holds the box's priority ORed with a sign bit. *)
+    contains the value [set i], where [i] is the box's priority. This is
+    the value [i] on top of which the sign bit has been set. *)
 type 'a box = {
   payload: 'a;
   mutable priority: int;

@@ -25,7 +25,7 @@ type 'a t
    Time complexity: {m O(1)}. *)
 val create: unit -> 'a t
 
-(**[add q x p] inserts the element [x] with priority [p] into the queue [q].
+(**[add q x i] inserts the element [x] with priority [i] into the queue [q].
 
    Time complexity: {m O(1)} (amortized). *)
 val add: 'a t -> 'a -> priority -> unit
