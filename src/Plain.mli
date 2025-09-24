@@ -43,6 +43,14 @@ val add: 'a t -> 'a -> priority -> unit
   is shared between all invocations of {!extract}. *)
 val extract: 'a t -> 'a option
 
+(**[extract' q] extracts an element out of the queue [q] and returns a pair
+   of this element and its priority. This element has minimum priority among
+   all of the elements that are currently present in the queue. If the queue
+   is empty, [None] is returned.
+
+  Time complexity: see {!extract}. *)
+val extract': 'a t -> ('a * priority) option
+
 (**[is_empty q] tests whether the queue [q] is empty.
 
    Time complexity: {m O(1)}. *)

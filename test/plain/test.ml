@@ -60,6 +60,8 @@ let () =
   let spec = t ^> nondet (option elt) in
   declare "extract" spec R.extract C.extract;
 
+  (* [extract'] is not tested. *)
+
   let spec = t ^> bool in
   declare "is_empty" spec R.is_empty C.is_empty;
 

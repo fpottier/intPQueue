@@ -136,6 +136,32 @@ let[@inline] extract q =
   else
     Some (extract_nonempty q)
 
+(* [extract'] is a copy of [extract] where we return a pair [x, i].
+   One could define [extract] in terms of [extract'], removing this
+   duplication, but this would cause an extra pair allocation. *)
+
+let rec extract'_nonempty q =
+  assert (0 < q.cardinal);
+  let i = q.best in
+  assert (0 <= i && i < MyArray.length q.a);
+  let xs = MyArray.unsafe_get q.a i in
+  if MyStack.length xs = 0 then begin
+    MyStack.reset xs;
+    q.best <- i + 1;
+    extract'_nonempty q
+  end
+  else begin
+    q.cardinal <- q.cardinal - 1;
+    let x = MyStack.pop xs in
+    x, i
+  end
+
+let[@inline] extract' q =
+  if q.cardinal = 0 then
+    None
+  else
+    Some (extract'_nonempty q)
+
 let repeat q f =
   while q.cardinal > 0 do
     let x = extract_nonempty q in
