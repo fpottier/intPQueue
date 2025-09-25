@@ -274,25 +274,23 @@ let repeat q f =
 (* [remove' q box fail] does not update [q.cardinal] and does not mark the
    box as isolated (that is, it does not update [box.priority]). *)
 
-(* The failure continuation [fail] determines what to do if we find that
-   [box] is not a member of [q]. *)
+(* The failure action [fail] determines what to do if we find that [box] is
+   not a member of [q]. It is permitted for [fail] to terminate normally; it
+   need not raise an exception. *)
 
 let remove' q box fail =
   (* The following checks resemble [mem q box]. However, we cannot use [mem q
      box] because we wish to bind [i], [xs], [j], [n] for use in the remainder
      of the code. *)
   let i = box.priority in
-  if not (0 <= i && i < MyArray.length q.a) then
-    fail();
+  if not (0 <= i && i < MyArray.length q.a) then fail() else
   let xs = MyArray.unsafe_get q.a i in
   let j = box.position in
   assert (0 <= j);
   let n = MyStack.length xs in
-  if not (j < n) then
-    fail();
+  if not (j < n) then fail() else
   let box' = MyStack.unsafe_get xs j in
-  if not (box == box') then
-    fail();
+  if not (box == box') then fail() else
   (* We have now verified that this box is a member of this queue. *)
   let box' = MyStack.pop xs in
   if j + 1 < n then begin
@@ -332,14 +330,19 @@ let update q box i' =
     add' q box i'
   end
 
+(* [increment box q ()] assumes that [box] is not a member of [q]. (We have
+   just determined this.) If [box] is busy, therefore a member of some other
+   queue, then it fails. Otherwise, it increments [q.cardinal], in preparation
+   for inserting [box] into [q]. *)
+
+let increment box q () =
+  if busy box then
+    fail "add_or_update: this box is already a member of some queue";
+  q.cardinal <- q.cardinal + 1
+
 (* [add_or_update q box i'] is analogous to [update q box i'], except the box
    is expected to be either in the queue [q] or isolated. (It must not be a
    member of some other queue.) *)
-
-exception NotInQueue
-
-let raise_not_in_queue () =
-  raise NotInQueue
 
 let add_or_update q box i' =
   if i' < 0 then
@@ -347,21 +350,13 @@ let add_or_update q box i' =
   (* If the current priority and the requested priority match, do nothing.
      Indeed, this implies that [box] is a member of some queue; we assume
      that this must be the queue [q]. *)
-  if box.priority <> i' then
-    (* Attempt removing this box out of [q]. *)
-    match
-      remove' q box raise_not_in_queue
-    with
-    | () ->
-        (* The box was in the queue and has been removed. *)
-        (* Now add it back with priority [i']. *)
-        add' q box i'
-    | exception NotInQueue ->
-        (* The box was not in the queue. Insert it. *)
-        (* We inline and simplify [add q box i']. *)
-        if busy box then
-          fail "add_or_update: this box is already a member of some queue";
-        (* Increment the queue's cardinality. *)
-        q.cardinal <- q.cardinal + 1;
-        (* Continue. *)
-        add' q box i'
+  if box.priority <> i' then begin
+    (* Attempt removing this box out of [q]. If we find that it is not in [q],
+       then check that it is not busy, and increment [q.cardinal]. *)
+    remove' q box (increment box q);
+    (* At this point, either the box was in the queue and has been removed,
+       without decrementing [q.cardinal]; or the box was not in the queue
+       and [q.cardinal] has been incremented. *)
+    (* In either case, insert [box] into the queue with priority [i']. *)
+    add' q box i'
+  end
