@@ -344,14 +344,18 @@ let raise_not_in_queue () =
 let add_or_update q box i' =
   if i' < 0 then
     fail "add_or_update: negative priority (%d)" i';
-  (* Attempt removing this box out of [q]. *)
-  match
-    remove' q box raise_not_in_queue
-  with
-  | () ->
-      (* The box was in the queue and has been removed. *)
-      (* Now add it back in with priority [i']. *)
-      add' q box i'
-  | exception NotInQueue ->
-      (* The box was not in the queue. Insert it. *)
-      add q box i'
+  (* If the current priority and the requested priority match, do nothing.
+     Indeed, this implies that [box] is a member of some queue; we assume
+     that this must be the queue [q]. *)
+  if box.priority <> i' then
+    (* Attempt removing this box out of [q]. *)
+    match
+      remove' q box raise_not_in_queue
+    with
+    | () ->
+        (* The box was in the queue and has been removed. *)
+        (* Now add it back in with priority [i']. *)
+        add' q box i'
+    | exception NotInQueue ->
+        (* The box was not in the queue. Insert it. *)
+        add q box i'
