@@ -354,8 +354,14 @@ let add_or_update q box i' =
     with
     | () ->
         (* The box was in the queue and has been removed. *)
-        (* Now add it back in with priority [i']. *)
+        (* Now add it back with priority [i']. *)
         add' q box i'
     | exception NotInQueue ->
         (* The box was not in the queue. Insert it. *)
-        add q box i'
+        (* We inline and simplify [add q box i']. *)
+        if busy box then
+          fail "add_or_update: this box is already a member of some queue";
+        (* Increment the queue's cardinality. *)
+        q.cardinal <- q.cardinal + 1;
+        (* Continue. *)
+        add' q box i'
