@@ -295,11 +295,11 @@ let remove' q box fail =
     fail();
   (* We have now verified that this box is a member of this queue. *)
   let box' = MyStack.pop xs in
-  if j + 1 < n then (
+  if j + 1 < n then begin
     (* We have extracted some other box, which we write at position [j]. *)
     MyStack.unsafe_set xs j box';
     box'.position <- j
-  )
+  end
 
 let fail_in_remove () =
   fail "remove: this box is not a member of this queue"
