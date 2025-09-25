@@ -324,8 +324,9 @@ let remove q box =
 let update q box i' =
   if i' < 0 then
     fail "update: negative priority (%d)" i';
-  (* If the current priority and the requested priority are equal,
-     then there is nothing to do. Otherwise, an update is required. *)
+  (* If the current priority and the requested priority match, do nothing.
+     Indeed, this implies that [box] is a member of some queue; we assume
+     that this must be the queue [q]. *)
   if box.priority <> i' then begin
     remove' q box fail_in_remove;
     add' q box i'
