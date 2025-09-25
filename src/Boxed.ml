@@ -282,30 +282,31 @@ let[@inline] remove'_epilogue xs j n =
     box'.position <- j
   )
 
+let fail_in_remove () =
+  fail "remove: this box is not a member of this queue"
+
 let remove' q box =
-  (* The following checks resemble [mem q box]. However, we cannot use
-     [mem q box] because 1- we wish to produce precise failure messages
-     and 2- we wish to bind [i], [xs], [j], [n] for use in the remainder
+  (* The following checks resemble [mem q box]. However, we cannot use [mem q
+     box] because we wish to bind [i], [xs], [j], [n] for use in the remainder
      of the code. *)
-  if not (busy box) then
-    fail "remove: this box is not a member of any queue";
   let i = box.priority in
-  assert (0 <= i);
-  if not (i < MyArray.length q.a) then
-    fail "remove: this box is not a member of this queue";
+  if not (0 <= i && i < MyArray.length q.a) then
+    fail_in_remove();
   let xs = MyArray.unsafe_get q.a i in
   let j = box.position in
   assert (0 <= j);
   let n = MyStack.length xs in
   if not (j < n) then
-    fail "remove: this box is not a member of this queue";
+    fail_in_remove();
   let box' = MyStack.unsafe_get xs j in
   if not (box == box') then
-    fail "remove: this box is not a member of this queue";
+    fail_in_remove();
   (* We have now verified that this box is a member of this queue. *)
   remove'_epilogue xs j n
 
 let remove q box =
+  if not (busy box) then
+    fail "remove: this box is not a member of any queue";
   (* Remove this box (or fail). *)
   remove' q box;
   (* Update the queue's cardinality. *)
