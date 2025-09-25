@@ -271,8 +271,11 @@ let repeat q f =
     f x
   done
 
-(* [remove' q box] does not update [q.cardinal] and does not mark the
+(* [remove' q box fail] does not update [q.cardinal] and does not mark the
    box as isolated (that is, it does not update [box.priority]). *)
+
+(* The failure continuation [fail] determines what to do if we find that
+   [box] is not a member of [q]. *)
 
 let[@inline] remove'_epilogue xs j n =
   let box' = MyStack.pop xs in
@@ -285,22 +288,22 @@ let[@inline] remove'_epilogue xs j n =
 let fail_in_remove () =
   fail "remove: this box is not a member of this queue"
 
-let remove' q box =
+let remove' q box fail =
   (* The following checks resemble [mem q box]. However, we cannot use [mem q
      box] because we wish to bind [i], [xs], [j], [n] for use in the remainder
      of the code. *)
   let i = box.priority in
   if not (0 <= i && i < MyArray.length q.a) then
-    fail_in_remove();
+    fail();
   let xs = MyArray.unsafe_get q.a i in
   let j = box.position in
   assert (0 <= j);
   let n = MyStack.length xs in
   if not (j < n) then
-    fail_in_remove();
+    fail();
   let box' = MyStack.unsafe_get xs j in
   if not (box == box') then
-    fail_in_remove();
+    fail();
   (* We have now verified that this box is a member of this queue. *)
   remove'_epilogue xs j n
 
@@ -308,7 +311,7 @@ let remove q box =
   if not (busy box) then
     fail "remove: this box is not a member of any queue";
   (* Remove this box (or fail). *)
-  remove' q box;
+  remove' q box fail_in_remove;
   (* Update the queue's cardinality. *)
   assert (0 < q.cardinal);
   q.cardinal <- q.cardinal - 1;
@@ -329,7 +332,7 @@ let update q box i =
   (* If the current priority and the requested priority are equal,
      then there is nothing to do. Otherwise, an update is required. *)
   if box.priority <> i then begin
-    remove' q box;
+    remove' q box fail_in_remove;
     add' q box i
   end
 
@@ -337,11 +340,11 @@ let update q box i =
    is expected to be either in the queue [q] or isolated. (It should not be
    a member of some other queue.) *)
 
-(* The fast path in the case where the two priorities are equal disappears.
-   The code is roughly equivalent to [remove' q box; add' q box i'], where a
-   failure in [remove'] is ignored. However, the busy check is moved; we first
-   check whether the box is in [q], and if it is not, then we require the box
-   to be not busy. (This check is implicit in the call [add q box i'].) *)
+(* The fast path in the case where the two priorities are equal disappears. *)
+
+(* The busy check is moved; we first check whether the box is in [q], and if
+   it is not, then we require the box to be not busy. (This check is implicit
+   in the call [add q box i'].) *)
 
 let add_or_update q box i' =
   if i' < 0 then
