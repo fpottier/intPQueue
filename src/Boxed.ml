@@ -277,17 +277,6 @@ let repeat q f =
 (* The failure continuation [fail] determines what to do if we find that
    [box] is not a member of [q]. *)
 
-let[@inline] remove'_epilogue xs j n =
-  let box' = MyStack.pop xs in
-  if j + 1 < n then (
-    (* We have extracted some other box, which we write at position [j]. *)
-    MyStack.unsafe_set xs j box';
-    box'.position <- j
-  )
-
-let fail_in_remove () =
-  fail "remove: this box is not a member of this queue"
-
 let remove' q box fail =
   (* The following checks resemble [mem q box]. However, we cannot use [mem q
      box] because we wish to bind [i], [xs], [j], [n] for use in the remainder
@@ -305,7 +294,15 @@ let remove' q box fail =
   if not (box == box') then
     fail();
   (* We have now verified that this box is a member of this queue. *)
-  remove'_epilogue xs j n
+  let box' = MyStack.pop xs in
+  if j + 1 < n then (
+    (* We have extracted some other box, which we write at position [j]. *)
+    MyStack.unsafe_set xs j box';
+    box'.position <- j
+  )
+
+let fail_in_remove () =
+  fail "remove: this box is not a member of this queue"
 
 let remove q box =
   if not (busy box) then
@@ -346,23 +343,22 @@ let update q box i =
    it is not, then we require the box to be not busy. (This check is implicit
    in the call [add q box i'].) *)
 
+exception NotInQueue
+
+let raise_not_in_queue () =
+  raise NotInQueue
+
 let add_or_update q box i' =
   if i' < 0 then
     fail "add_or_update: negative priority (%d)" i';
-  (* Check whether this box is a member of [q]. *)
-  (* If it is not, bail out into [add]. *)
-  let i = box.priority in
-  if not (0 <= i && i < MyArray.length q.a) then
-    add q box i' else
-  let xs = MyArray.unsafe_get q.a i in
-  let j = box.position in
-  assert (0 <= j);
-  let n = MyStack.length xs in
-  if not (j < n) then
-    add q box i' else
-  let box' = MyStack.unsafe_get xs j in
-  if not (box == box') then
-    add q box i' else
-  (* We have now verified that this box is a member of this queue. *)
-  remove'_epilogue xs j n;
-  add' q box i'
+  (* Attempt removing this box out of [q]. *)
+  match
+    remove' q box raise_not_in_queue
+  with
+  | () ->
+      (* The box was in the queue and has been removed. *)
+      (* Now add it back in with priority [i']. *)
+      add' q box i'
+  | exception NotInQueue ->
+      (* The box was not in the queue. Insert it. *)
+      add q box i'
