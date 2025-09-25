@@ -305,8 +305,6 @@ let fail_in_remove () =
   fail "remove: this box is not a member of this queue"
 
 let remove q box =
-  if not (busy box) then
-    fail "remove: this box is not a member of any queue";
   (* Remove this box (or fail). *)
   remove' q box fail_in_remove;
   (* Update the queue's cardinality. *)
