@@ -119,7 +119,7 @@ val update: 'a t -> 'a box -> priority -> unit
 
    Provided its precondition is respected,
    [add_or_update q box i] is equivalent to
-   [if mem box q then add q box i else update q box i].
+   [if mem box q then update q box i else add q box i].
 
    If its precondition is violated, then [add_or_update q box i] cannot be
    expected to fail: in some cases, it can appear to silently succeed. To
