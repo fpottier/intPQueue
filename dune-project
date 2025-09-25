@@ -1,4 +1,4 @@
-(lang dune 3.11)
+(lang dune 3.18)
 (name intPQueue)
 (generate_opam_files true)
 (package
@@ -10,6 +10,7 @@
   (bug_reports https://github.com/fpottier/intPQueue/issues)
   (synopsis "A fast and compact priority queue with low integer priorities")
   (license "LGPL-2.0-only WITH OCaml-LGPL-linking-exception")
+  (maintenance_intent "(latest)")
   (depends
     (ocaml (>= 4.14))
     hector
