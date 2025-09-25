@@ -60,10 +60,20 @@ let priority =
 
 (* -------------------------------------------------------------------------- *)
 
-(* Declare the operations. *)
+(* Preconditions. *)
+
+let mem q box =
+  R.mem q box
 
 let lone box =
   not (R.busy box)
+
+let lone_or_mem q box =
+  lone box || mem q box
+
+(* -------------------------------------------------------------------------- *)
+
+(* Declare the operations. *)
 
 let () =
 
@@ -91,11 +101,14 @@ let () =
   let spec = t ^> nondet (option box) in
   declare "extract" spec R.extract C.extract;
 
-  let spec = t ^>> fun q -> R.mem q % box ^> unit in
+  let spec = t ^>> fun q -> mem q % box ^> unit in
   declare "remove" spec R.remove C.remove;
 
-  let spec = t ^>> fun q -> R.mem q % box ^> priority ^> unit in
+  let spec = t ^>> fun q -> mem q % box ^> priority ^> unit in
   declare "update" spec R.update C.update;
+
+  let spec = t ^>> fun q -> lone_or_mem q % box ^> priority ^> unit in
+  declare "add_or_update" spec R.add_or_update C.add_or_update;
 
   let spec = t ^> bool in
   declare "is_empty" spec R.is_empty C.is_empty;

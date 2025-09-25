@@ -113,6 +113,9 @@ val remove: 'a t -> 'a box -> unit
    Time complexity: {m O(1)}. *)
 val update: 'a t -> 'a box -> priority -> unit
 
+(**TODO*)
+val add_or_update: 'a t -> 'a box -> priority -> unit
+
 (**[is_empty q] tests whether the queue [q] is empty.
 
    Time complexity: {m O(1)}. *)

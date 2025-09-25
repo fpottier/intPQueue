@@ -152,6 +152,12 @@ let update q box i =
   remove q box;
   add q box i
 
+let add_or_update q box i =
+  if mem q box then
+    update q box i
+  else
+    add q box i
+
 let cardinal q =
   M.fold (fun _p xs c -> List.length xs + c) !q 0
 

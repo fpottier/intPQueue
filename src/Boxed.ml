@@ -331,3 +331,34 @@ let update q box i =
     remove' q box;
     add' q box i
   end
+
+(* [add_or_update q box i'] is analogous to [update q box i'], except the box
+   is expected to be either in the queue [q] or isolated. (It should not be
+   a member of some other queue.) *)
+
+(* The fast path in the case where the two priorities are equal disappears.
+   The code is roughly equivalent to [remove' q box; add' q box i'], where a
+   failure in [remove'] is ignored. However, the busy check is moved; we first
+   check whether the box is in [q], and if it is not, then we require the box
+   to be not busy. (This check is implicit in the call [add q box i'].) *)
+
+let add_or_update q box i' =
+  if i' < 0 then
+    fail "add_or_update: negative priority (%d)" i';
+  (* Check whether this box is a member of [q]. *)
+  (* If it is not, bail out into [add]. *)
+  let i = box.priority in
+  if not (0 <= i && i < MyArray.length q.a) then
+    add q box i' else
+  let xs = MyArray.unsafe_get q.a i in
+  let j = box.position in
+  assert (0 <= j);
+  let n = MyStack.length xs in
+  if not (j < n) then
+    add q box i' else
+  let box' = MyStack.unsafe_get xs j in
+  if not (box == box') then
+    add q box i' else
+  (* We have now verified that this box is a member of this queue. *)
+  remove'_epilogue xs j n;
+  add' q box i'
