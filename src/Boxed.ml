@@ -332,14 +332,8 @@ let update q box i' =
   end
 
 (* [add_or_update q box i'] is analogous to [update q box i'], except the box
-   is expected to be either in the queue [q] or isolated. (It should not be
-   a member of some other queue.) *)
-
-(* The fast path in the case where the two priorities are equal disappears. *)
-
-(* The busy check is moved; we first check whether the box is in [q], and if
-   it is not, then we require the box to be not busy. (This check is implicit
-   in the call [add q box i'].) *)
+   is expected to be either in the queue [q] or isolated. (It must not be a
+   member of some other queue.) *)
 
 exception NotInQueue
 
