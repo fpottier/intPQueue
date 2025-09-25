@@ -274,6 +274,14 @@ let repeat q f =
 (* [remove' q box] does not update [q.cardinal] and does not mark the
    box as isolated (that is, it does not update [box.priority]). *)
 
+let[@inline] remove'_epilogue xs j n =
+  let box' = MyStack.pop xs in
+  if j + 1 < n then (
+    (* We have extracted some other box, which we write at position [j]. *)
+    MyStack.unsafe_set xs j box';
+    box'.position <- j
+  )
+
 let remove' q box =
   (* The following checks resemble [mem q box]. However, we cannot use
      [mem q box] because 1- we wish to produce precise failure messages
@@ -295,15 +303,7 @@ let remove' q box =
   if not (box == box') then
     fail "remove: this box is not a member of this queue";
   (* We have now verified that this box is a member of this queue. *)
-  let box' = MyStack.pop xs in
-  if j + 1 = n then
-    (* We have extracted the desired box. *)
-    assert (box == box')
-  else (
-    (* We have extracted some other box, which we write at position [j]. *)
-    MyStack.unsafe_set xs j box';
-    box'.position <- j
-  )
+  remove'_epilogue xs j n
 
 let remove q box =
   (* Remove this box (or fail). *)
