@@ -313,7 +313,7 @@ let remove q box =
   (* Mark this box isolated. *)
   box.priority <- set box.priority
 
-(* [update q box i] is equivalent to the sequence [remove q box; add q box i].
+(* [update q box i'] is equivalent to the sequence [remove q box; add q box i'].
    By composing the two operations, we are able to avoid a few memory writes.
    To begin with, if this box's priority is already [i], then there is nothing
    to do. (In this case, for efficiency, we do not verify that [mem q box]
@@ -321,14 +321,14 @@ let remove q box =
    instead of [remove] and [add], we save a few accesses to [q.cardinal] and
    [box.priority]. *)
 
-let update q box i =
-  if i < 0 then
-    fail "update: negative priority (%d)" i;
+let update q box i' =
+  if i' < 0 then
+    fail "update: negative priority (%d)" i';
   (* If the current priority and the requested priority are equal,
      then there is nothing to do. Otherwise, an update is required. *)
-  if box.priority <> i then begin
+  if box.priority <> i' then begin
     remove' q box fail_in_remove;
-    add' q box i
+    add' q box i'
   end
 
 (* [add_or_update q box i'] is analogous to [update q box i'], except the box
