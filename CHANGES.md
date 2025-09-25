@@ -1,5 +1,9 @@
 # Changes
 
+## 2025/MM/DD
+
+* New operation `Boxed.add_or_update`.
+
 ## 2025/09/24
 
 * Initial implementation and release.
