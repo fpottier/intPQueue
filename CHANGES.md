@@ -1,5 +1,9 @@
 # Changes
 
+## 2025/MM/DD
+
+* In `Plain` and `Boxed`, new function `iter`.
+
 ## 2025/09/25
 
 * Incompatible API changes:
