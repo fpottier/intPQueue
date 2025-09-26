@@ -1,5 +1,10 @@
 # To Do
 
+## Plain
+
+* If there was an operation `iter_segment` on vectors
+  then we could (should) use it in `iter`.
+
 ## Boxed
 
 * One might wish to make `create` a functor, so that each queue has its own
