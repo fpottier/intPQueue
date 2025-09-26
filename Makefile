@@ -202,10 +202,13 @@ CLIENT := $(HOME)/dev/menhir/base
 vendor:
 	@ copy=$(CLIENT) ; \
 	  cd src && \
-	  (echo "module Plain = struct"; cat Plain.ml; echo "end")  > $$copy/IntPQueue.ml && \
-	  (echo "module Boxed = struct"; cat Boxed.ml; echo "end") >> $$copy/IntPQueue.ml && \
-	  (echo "module Plain : sig"; cat Plain.mli; echo "end")  > $$copy/IntPQueue.mli && \
-	  (echo "module Boxed : sig"; cat Boxed.mli; echo "end") >> $$copy/IntPQueue.mli && \
+	  cp Plain.{ml,mli} Boxed.{ml,mli} $$copy && \
 	  cd $$copy && \
+	  headache -r Plain.{ml,mli} Boxed.{ml,mli} && \
+	  (echo "module Plain = struct"; cat Plain.ml; echo "end")  > IntPQueue.ml && \
+	  (echo "module Boxed = struct"; cat Boxed.ml; echo "end") >> IntPQueue.ml && \
+	  (echo "module Plain : sig"; cat Plain.mli; echo "end")  > IntPQueue.mli && \
+	  (echo "module Boxed : sig"; cat Boxed.mli; echo "end") >> IntPQueue.mli && \
 	  sed -i.bak -e 's/Hector.Poly/Vector/g' IntPQueue.ml && \
-	  rm -f *.bak src/*.bak
+	  rm -f *.bak src/*.bak && \
+	  headache -h ../headers/regular-header IntPQueue.ml \
