@@ -76,8 +76,9 @@ val cardinal: 'a t -> int
    invocations of the function [yield]. *)
 val repeat: 'a t -> ('a -> unit) -> unit
 
-(**[iter q yield] enumerates the elements of the queue [q] by passing them
-   to the function [yield]. This function must not modify the queue [q]. *)
+(**[iter q yield] enumerates the elements of the queue [q], by increasing
+   order of priority, by passing them to the function [yield]. This function
+   must not modify the queue [q]. *)
 val iter: 'a t -> ('a -> unit) -> unit
 
 (**[reset q] empties the queue [q], freeing up the space that the queue
