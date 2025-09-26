@@ -191,19 +191,21 @@ undo:
 
 # We copy the source files without further ado, so `intPQueue` is not
 # officially considered a vendored library inside Menhir. It is just
-# two modules, Plain and Boxed.
+# a module, IntPQueue.
 
 # Our dependency on Hector.Poly is replaced with a dependency on Vector,
 # which exists inside Menhir.
 
-CLIENT := $(HOME)/dev/menhir/src
-
-FILES  := Plain.ml Boxed.ml Plain.mli Boxed.mli
+CLIENT := $(HOME)/dev/menhir/base
 
 .PHONY: vendor
 vendor:
 	@ copy=$(CLIENT) ; \
-	  cd src && cp -a $(FILES) $$copy && \
+	  cd src && \
+	  (echo "module Plain = struct"; cat Plain.ml; echo "end")  > $$copy/IntPQueue.ml && \
+	  (echo "module Boxed = struct"; cat Boxed.ml; echo "end") >> $$copy/IntPQueue.ml && \
+	  (echo "module Plain : sig"; cat Plain.mli; echo "end")  > $$copy/IntPQueue.mli && \
+	  (echo "module Boxed : sig"; cat Boxed.mli; echo "end") >> $$copy/IntPQueue.mli && \
 	  cd $$copy && \
-	  sed -i.bak -e 's/Hector.Poly/Vector/g' $(FILES) && \
+	  sed -i.bak -e 's/Hector.Poly/Vector/g' IntPQueue.ml && \
 	  rm -f *.bak src/*.bak
