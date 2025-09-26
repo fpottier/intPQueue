@@ -265,10 +265,10 @@ let[@inline] extract q =
   else
     Some (extract_nonempty q)
 
-let repeat q f =
+let repeat q yield =
   while q.cardinal > 0 do
     let x = extract_nonempty q in
-    f x
+    yield x
   done
 
 (* [remove' q box fail] does not update [q.cardinal] and does not mark the
