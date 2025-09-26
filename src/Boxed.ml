@@ -271,6 +271,13 @@ let repeat q yield =
     yield x
   done
 
+let iter q yield =
+  (* It would be preferable to use [MyArray.iter_segment] here. *)
+  for i = q.best to MyArray.length q.a - 1 do
+    let xs = MyArray.get q.a i in
+    MyStack.iter yield xs
+  done
+
 (* [remove' q box fail] does not update [q.cardinal] and does not mark the
    box as isolated (that is, it does not update [box.priority]). *)
 

@@ -68,7 +68,7 @@ let () =
   let spec = t ^> int in
   declare "cardinal" spec R.cardinal C.cardinal;
 
-  (* [repeat] is not tested. *)
+  (* [repeat] and [iter] are not tested. *)
 
   let spec = t ^> unit in
   declare "reset" spec R.reset C.reset;

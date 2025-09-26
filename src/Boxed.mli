@@ -147,6 +147,10 @@ val cardinal: 'a t -> int
    invocations of the function [yield]. *)
 val repeat: 'a t -> ('a box -> unit) -> unit
 
+(**[iter q yield] enumerates the boxes in the queue [q] by passing them
+   to the function [yield]. This function must not modify the queue [q]. *)
+val iter: 'a t -> ('a box -> unit) -> unit
+
 (**[reset q] empties the queue [q]. The queue [q] becomes identical to a
    queue that has just been created by {!create}. Every box that was a
    member of the queue [q] becomes isolated.
