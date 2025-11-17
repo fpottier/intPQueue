@@ -28,6 +28,8 @@ is {m O(n)}.
 In other words, every priority queue operation
 has amortized time complexity {m O(1)}.
 
+This data structure is {i not} thread-safe.
+
 {1 API}
 
 {!modules:
