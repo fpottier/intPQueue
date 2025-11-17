@@ -209,6 +209,7 @@ vendor:
 	  (echo "module Boxed = struct"; cat Boxed.ml; echo "end") >> IntPQueue.ml && \
 	  (echo "module Plain : sig"; cat Plain.mli; echo "end")  > IntPQueue.mli && \
 	  (echo "module Boxed : sig"; cat Boxed.mli; echo "end") >> IntPQueue.mli && \
+	  rm Plain.{ml,mli} Boxed.{ml,mli} && \
 	  sed -i.bak -e 's/Hector.Poly/Vector/g' IntPQueue.ml && \
 	  rm -f *.bak src/*.bak && \
 	  headache -h ../headers/regular-header IntPQueue.ml \
